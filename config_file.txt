@@ -1,0 +1,3 @@
+source_dirs/source1 dest_dirs/dest1
+source_dirs/source2 dest_dirs/dest2
+source_dirs/source3 dest_dirs/dest3

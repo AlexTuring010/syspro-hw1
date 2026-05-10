@@ -1,0 +1,4 @@
+[2025-05-02 19:53:12] Shutting down manager...
+[2025-05-02 19:53:12] Waiting for all active workers to finish.
+[2025-05-02 19:53:12] Processing remaining queued tasks.
+[2025-05-02 19:53:12] Manager shutdown complete.

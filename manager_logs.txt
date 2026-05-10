@@ -1,0 +1,21 @@
+[2025-05-02 19:51:50] Added directory: source_dirs/source1 -> dest_dirs/dest1
+[2025-05-02 19:51:50] Monitoring started for source_dirs/source1
+[2025-05-02 19:51:51] Syncing directory: source_dirs/source1 -> dest_dirs/dest1
+[2025-05-02 19:51:51] Added directory: source_dirs/source2 -> dest_dirs/dest2
+[2025-05-02 19:51:51] Monitoring started for source_dirs/source2
+[2025-05-02 19:51:51] Syncing directory: source_dirs/source2 -> dest_dirs/dest2
+[2025-05-02 19:51:51] Added directory: source_dirs/source3 -> dest_dirs/dest3
+[2025-05-02 19:51:51] Monitoring started for source_dirs/source3
+[2025-05-02 19:51:51] Syncing directory: source_dirs/source3 -> dest_dirs/dest3
+[2025-05-02 19:51:51] [source_dirs/source1] [dest_dirs/dest1] [12308] [FULL] [SUCCESS] [0 files copied, 0 skipped]
+[2025-05-02 19:51:51] Sync completed source_dirs/source1 -> dest_dirs/dest1 Errors: 0
+[2025-05-02 19:51:51] [source_dirs/source2] [dest_dirs/dest2] [12309] [FULL] [SUCCESS] [1 files copied, 0 skipped]
+[2025-05-02 19:51:51] Sync completed source_dirs/source2 -> dest_dirs/dest2 Errors: 0
+[2025-05-02 19:51:51] [source_dirs/source3] [dest_dirs/dest3] [12310] [FULL] [SUCCESS] [0 files copied, 0 skipped]
+[2025-05-02 19:51:51] Sync completed source_dirs/source3 -> dest_dirs/dest3 Errors: 0
+[2025-05-02 19:52:16] [source_dirs/source1] [dest_dirs/dest1] [12319] [ADDED] [SUCCESS] [File: test]
+[2025-05-02 19:52:16] [source_dirs/source1] [dest_dirs/dest1] [12320] [ADDED] [SUCCESS] [File: test]
+[2025-05-02 19:52:16] [source_dirs/source1] [dest_dirs/dest1] [12321] [MODIFIED] [SUCCESS] [File: test]
+[2025-05-02 19:52:27] [source_dirs/source2] [dest_dirs/dest2] [12327] [MODIFIED] [SUCCESS] [File: test]
+[2025-05-02 19:52:34] [source_dirs/source3] [dest_dirs/dest3] [12333] [ADDED] [SUCCESS] [File: test]
+[2025-05-02 19:52:34] [source_dirs/source3] [dest_dirs/dest3] [12334] [MODIFIED] [SUCCESS] [File: test]
