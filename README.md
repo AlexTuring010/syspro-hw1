@@ -1,71 +1,77 @@
-Όνομα: Αλέξανδρος Γκιάφης  
-ΑΜ: sdi2200284
+# syspro-hw1
 
-Στην εργασία αυτή μας ζητήθηκε να προγραμματίσουμε ένα σύστημα που παρακολουθεί καταλόγους και διατηρεί συγχρονισμένα backups των περιεχομένων τους σε άλλους καταλόγους. Αυτά τα ζευγάρια καταλόγων τα ονομάζουμε source-destination pairs. Το σύστημα διασφαλίζει ότι οι αλλαγές στον κατάλογο πηγής αντικατοπτρίζονται στον κατάλογο προορισμού. Παράλληλα, καταγράφει logs σε αρχεία και χρησιμοποιεί διεργασίες-παιδιά για να ολοκληρώσει τις εργασίες συγχρονισμού. Υπάρχει, όμως, ένα όριο στον αριθμό των διεργασιών που μπορούν να δημιουργηθούν ταυτόχρονα. Αν οι εργασίες ξεπεράσουν αυτό το όριο, το σύστημα τις διαχειρίζεται μέσω μιας ουράς.
+A directory-mirroring daemon written in C: keeps backup copies of source directories synchronised with the originals, with all the systems-programming primitives you'd expect — `fork`/`exec` workers, `pipe` IPC, `poll`-driven event loop, `inotify` for change detection, custom task queue.
 
-Το σύστημα αποτελείται από δύο βασικά μέρη:
+First homework of the **System Programming** course at the University of Athens (Department of Informatics & Telecommunications). Solo project.
 
-1. **fss_manager (backend):** Υπεύθυνος για την παρακολούθηση, την καταγραφή των εργασιών και τη διαχείριση των διεργασιών-παιδιών. Επικοινωνεί με το front-end μέσω μηνυμάτων.
-2. **fss_console (front-end):** Μια κονσόλα που επιτρέπει στον χρήστη να δίνει εντολές, όπως προσθήκη νέου ζευγαριού καταλόγων, διακοπή παρακολούθησης, λήψη πληροφοριών για ένα ζευγάρι, τερματισμό του συστήματος κ.ά.
+## What it does
 
-Οι workers αναλαμβάνουν συγκεκριμένες εργασίες, όπως συγχρονισμό αρχείων όταν αλλάζουν, δημιουργούνται ή διαγράφονται, καθώς και πλήρη συγχρονισμό των καταλόγων. Μπορούν να λειτουργήσουν αυτόνομα αν εκτελεστούν με τις κατάλληλες παραμέτρους, επιστρέφοντας ένα αναγνώσιμο report.
+Configure source→destination directory pairs in `config_file.txt`. The daemon (`fss_manager`) keeps each destination synchronised with its source. The user-facing CLI (`fss_console`) sends commands over a named pipe.
 
-Ο **fss_manager** διαχειρίζεται όλες τις υπόλοιπες λειτουργίες χωρίς να δημιουργεί επιπλέον διεργασίες. Παρακολουθεί καταλόγους, διαχειρίζεται την ουρά εργασιών, διαβάζει εντολές από την κονσόλα, επεξεργάζεται τα reports των workers και καταγράφει logs. Επικοινωνεί με την κονσόλα μέσω μηνυμάτων και επιστρέφει πάντα ένα "COMMAND_FINISHED" στο τέλος κάθε εντολής.
-
-### Λειτουργία του fss_manager
-
-Ο fss_manager εκτελεί ένα βασικό `while` loop και χρησιμοποιεί `poll` για να παρακολουθεί:
-
-- Μηνύματα από την κονσόλα.
-- Μηνύματα από τους workers.
-- `inotify` events για αλλαγές στους καταλόγους που παρακολουθούνται.
-
-Αρχικά, αν του δοθεί ένα `config_file`, προσθέτει τα ζευγάρια καταλόγων στη δομή `WatchedDirs`, τα προετοιμάζει για παρακολούθηση και προσθέτει εργασίες πλήρους συγχρονισμού στην ουρά. Στη συνέχεια, μπαίνει στο `while` loop, όπου:
-
-1. Ξεκινά εργασίες από την ουρά, αν δεν έχει φτάσει το όριο των workers. Οι εργασίες που ξεκινούν μεταφέρονται από την ουρά στην `assigned_tasks`.
-2. Καλεί `poll` και περιμένει.
-
-Το `poll` μπορεί να ξυπνήσει για διάφορους λόγους:
-
-- **Αλλαγές στους καταλόγους:** Προσθέτει νέες εργασίες στην ουρά.
-- **Μηνύματα από workers:** Διαβάζει τα reports γραμμή-γραμμή, τα επεξεργάζεται και περιμένει το `SIGCHLD` σήμα για να επιβεβαιώσει ότι ο worker τερμάτισε. Αφαιρεί τον worker από το `active_workers` counter και μπορεί να ξεκινήσει νέο worker στην επόμενη επανάληψη του loop.
-- **Μηνύματα από την κονσόλα:** Διαβάζει την εντολή, την επεξεργάζεται και επιστρέφει τα αποτελέσματα.
-
-Οι workers λαμβάνουν τις εργασίες τους μέσω παραμέτρων προγράμματος, ενώ τα αποτελέσματά τους επιστρέφονται μέσω pipe. Η κονσόλα είναι ένα απλό πρόγραμμα που επιτρέπει στον χρήστη να δίνει εντολές, διασφαλίζοντας ότι αυτές δεν ξεπερνούν τα όρια που μπορεί να διαχειριστεί ο fss_manager. Ο έλεγχος εγκυρότητας των εντολών γίνεται από τον fss_manager.
-
-### Δομή Καταλόγων και Οδηγίες εκτέλεσης
-
-Το project είναι οργανωμένο ως εξής:
-
-- **includes/**: Περιέχει τα header files που χρησιμοποιούνται από τα modules και τα κύρια προγράμματα.
-- **src/**: Περιέχει τον πηγαίο κώδικα του project.
-  - **src/main/**: Περιέχει τα κύρια προγράμματα:
-    - `fss_console.c`: Το front-end πρόγραμμα που επιτρέπει στον χρήστη να δίνει εντολές.
-    - `fss_manager.c`: Το backend πρόγραμμα που διαχειρίζεται την παρακολούθηση καταλόγων, την ουρά εργασιών και την επικοινωνία με τους workers.
-    - `worker.c`: Το πρόγραμμα που εκτελεί τις εργασίες συγχρονισμού.
-  - **src/modules/**: Περιέχει τα modules που υλοποιούν βασικές λειτουργίες:
-    - `DirList.c`: Διαχείριση και παρακολούθηση καταλόγων.
-    - `TaskQueue.c`: Υλοποίηση της ουράς εργασιών.
-- **bin/**: Περιέχει τα object files που δημιουργούνται κατά τη μεταγλώττιση των modules.
-- **source_dirs/**: Περιέχει τους καταλόγους `source1`, `source2`, `source3` που χρησιμοποιούνται για δοκιμές ως πηγές.
-- **dest_dirs/**: Περιέχει τους καταλόγους `dest1`, `dest2`, `dest3` που χρησιμοποιούνται για δοκιμές ως προορισμοί.
-- **config_file.txt**: Ένα αρχείο ρυθμίσεων που περιέχει ζευγάρια καταλόγων (source-destination pairs) για χρήση από το `fss_manager`.
-- **manager_logs.txt** και **console_logs.txt**: Αρχεία καταγραφής για το `fss_manager` και το `fss_console`, αντίστοιχα. Μπορείτε να τα περάσετε ως ορίσματα στα προγράμματα ή να δημιουργήσετε νέα αρχεία καταγραφής.
-- **fss_script.sh**: Ένα script που υλοποιεί εντολές για την επεξεργασία των αρχείων καταγραφής, όπως περιγράφεται στις οδηγίες.
-
-### Μεταγλώττιση και Εκτέλεση
-
-Για να μεταγλωττίσετε τα προγράμματα, απλά εκτελέστε την εντολή:
-
-```bash
-make
+```
+config_file.txt          ┌──────────────────────┐
+   src1/ -> dest1/  ───▶ │     fss_manager      │ ◀── fss_console
+   src2/ -> dest2/       │  (single process)    │      (commands)
+                         │                      │
+                         │  inotify watches  ──┐│
+                         │  task queue       │ ││
+                         │  poll(2) loop  ──┘  ││
+                         │       │             │
+                         │       ▼             │
+                         │  fork worker(s) ────┼─▶ pipe ─▶ sync result
+                         └──────────────────────┘
 ```
 
-Αυτό θα δημιουργήσει:
+Commands the console supports:
 
-- Τα object files των modules στον κατάλογο `bin/`.
-- Τα εκτελέσιμα αρχεία `fss_console`, `fss_manager` και `worker` στον root κατάλογο.
+- `add <source> <target>` — start watching a new pair.
+- `cancel <source>` — stop watching a pair.
+- `status <source>` — show current sync state, last sync time, error count.
+- `sync <source>` — trigger a full re-sync.
+- `shutdown` — drain in-flight workers, then exit.
 
-### Εκτέλεση
+## Architecture choices
 
-Όπως περιγράφουν οι οδηγίες στην εκφώνηση
+- **`fss_manager` is a single process** with a `poll(2)`-driven event loop. It multiplexes three input sources: `inotify` events from watched directories, messages from the console pipe, and exit notifications from worker children. No threads — concurrency comes from the worker pool.
+- **Workers are forked children** that run `worker.c`. Each does one sync task (full-sync of a directory pair, or apply-delta for a single file change) and exits. Configurable `--worker_limit` caps how many can run at once; surplus tasks queue up in `TaskQueue`.
+- **Workers report back over a `pipe`** — line-by-line, one record per file. `fss_manager` reads worker stdout and waits for `SIGCHLD` to confirm exit before freeing the slot.
+- **`inotify` for change detection** — no busy-polling the filesystem. The manager registers watches at startup (or when `add` arrives) and queues sync tasks reactively when events fire.
+- **Worker can run standalone.** Pass it the right CLI args and it'll do a one-off sync without the manager — useful for debugging and surfaced in the assignment brief.
+
+## Modules
+
+| File | Purpose |
+|---|---|
+| `src/main/fss_manager.c` | Event loop, worker dispatch, command handling |
+| `src/main/fss_console.c` | CLI frontend, talks to manager over pipe |
+| `src/main/worker.c` | Sync engine — full-sync and per-file modes |
+| `src/modules/DirList.c` | Linked-list of watched directory pairs (status, last_sync_time, error_count, …) |
+| `src/modules/TaskQueue.c` | FIFO queue of pending sync tasks, separate from active workers |
+
+Tests use the [Unity](https://www.throwtheswitch.org/unity) C testing framework (vendored under `includes/`).
+
+## Build & run
+
+```bash
+make                                          # produces fss_manager, fss_console, worker
+./fss_manager -l manager_logs.txt -c config_file.txt -n 5 &
+./fss_console -l console_logs.txt
+```
+
+Sample data ships in `source_dirs/source[1-4]/` and `dest_dirs/dest[1-3]/`. The Bash post-processing script `fss_script.sh` parses `manager_logs.txt` according to the assignment brief.
+
+## Notable artefacts
+
+- **`DevLogs.md`** — a personal development journal (in Greek) kept while building this. Captures the design decisions, dead ends, and the moment I realised inotify was the right tool. Left in as-is.
+- **`CompletionReport.pdf`** — the formal report that accompanied the homework submission.
+
+## Sequence
+
+Part of a two-piece System Programming arc:
+
+1. **syspro-hw1** *(you are here)* — single-machine, process-pool, inotify-driven
+2. [syspro-hw2](https://github.com/AlexTuring010/syspro-hw2) — NFS-style: distributed across machines, thread-pool, custom PUSH/PULL TCP protocol. Reuses the `TaskQueue` and `DirList` modules from this repo.
+
+## License
+
+[MIT](LICENSE) — applies to my own code in this repo. Assignment-distributed materials and vendored libraries (Unity test framework) retain their original licenses.
